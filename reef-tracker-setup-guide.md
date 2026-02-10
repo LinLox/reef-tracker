@@ -1,5 +1,5 @@
 # Reef Tracker - Proxmox LXC Setup Guide
-Put together using beginner knowledge of coding and AI as a learning project to see how everything comes together. This is not complete, reviewed, or probably even useful and wanted to see how it all came together on an isolated LAN.
+Put together using beginner knowledge of coding and AI as a learning project to see how everything comes together in an isolated LAN.
 
 ## Overview
 This guide will help you set up your reef tank parameter tracker on an Ubuntu LXC container in Proxmox, with a Python/Flask backend and SQLite database.
