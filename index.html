@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reef Tank Tracker</title>
+  <script src="chart.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      max-width: 1000px;
+    }
+    h1, h2 {
+      margin-bottom: 0.3em;
+    }
+    form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    label {
+      font-size: 0.9em;
+      display: flex;
+      flex-direction: column;
+    }
+    input[type="number"], input[type="date"] {
+      padding: 4px;
+      font-size: 0.9em;
+    }
+    button {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    .charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    canvas {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      padding: 6px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+      font-size: 0.9em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px 6px;
+      text-align: center;
+    }
+    th {
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>Reef Tank Parameter Tracker</h1>
+  <p>Track alkalinity, phosphate, nitrate, calcium, magnesium, and specific gravity over time.</p>
+
+  <h2>Add Measurement</h2>
+  <form id="entry-form">
+    <label>
+      Date
+      <input type="date" id="date" required />
+    </label>
+    <label>
+      Alkalinity (dKH)
+      <input type="number" id="alk" step="0.1" />
+    </label>
+    <label>
+      Phosphate (ppm)
+      <input type="number" id="po4" step="0.01" />
+    </label>
+    <label>
+      Nitrate (ppm)
+      <input type="number" id="no3" step="0.1" />
+    </label>
+    <label>
+      Calcium (ppm)
+      <input type="number" id="ca" step="1" />
+    </label>
+    <label>
+      Magnesium (ppm)
+      <input type="number" id="mg" step="1" />
+    </label>
+    <label>
+      Specific Gravity
+      <input type="number" id="sg" step="0.0001" />
+    </label>
+    <div class="full-width">
+      <button type="submit">Add / Update Entry</button>
+      <button type="button" id="clear-data" style="margin-left: 10px; background:#fdd;">
+        Clear All Data
+      </button>
+    </div>
+  </form>
+
+  <h2>Charts</h2>
+  <div class="charts">
+    <div>
+      <h3>Alkalinity</h3>
+      <canvas id="chart-alk"></canvas>
+    </div>
+    <div>
+      <h3>Phosphate</h3>
+      <canvas id="chart-po4"></canvas>
+    </div>
+    <div>
+      <h3>Nitrate</h3>
+      <canvas id="chart-no3"></canvas>
+    </div>
+    <div>
+      <h3>Calcium</h3>
+      <canvas id="chart-ca"></canvas>
+    </div>
+    <div>
+      <h3>Magnesium</h3>
+      <canvas id="chart-mg"></canvas>
+    </div>
+    <div>
+      <h3>Specific Gravity</h3>
+      <canvas id="chart-sg"></canvas>
+    </div>
+  </div>
+
+  <h2>Raw Data</h2>
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Alk</th>
+        <th>PO4</th>
+        <th>NO3</th>
+        <th>Ca</th>
+        <th>Mg</th>
+        <th>SG</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let data = [];
+    let charts = {};
+
+    // API base URL
+    const API_BASE = '/api';
+
+    // Load data from API
+    async function loadData() {
+      try {
+        const res = await fetch(`${API_BASE}/parameters`);
+        if (!res.ok) throw new Error('API error');
+        data = await res.json();
+        renderTable();
+        updateCharts();
+      } catch (e) {
+        console.error('Load failed:', e);
+        alert('Failed to load data. Check if API is running.');
+      }
+    }
+
+    // Save entry via API
+    async function saveEntry(entry) {
+      const res = await fetch(`${API_BASE}/parameters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    // Clear all data
+    async function clearAll() {
+      if (!confirm('Delete ALL data?')) return;
+      const res = await fetch(`${API_BASE}/parameters/clear`, { method: 'DELETE' });
+      if (res.ok) loadData();
+    }
+
+    // Sort data by date ascending
+    function sortData() {
+      data.sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // Table rendering
+    const tableBody = document.querySelector("#data-table tbody");
+    function renderTable() {
+      tableBody.innerHTML = "";
+      sortData();
+      for (const row of data) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.date}</td>
+          <td>${row.alk ?? ""}</td>
+          <td>${row.po4 ?? ""}</td>
+          <td>${row.no3 ?? ""}</td>
+          <td>${row.ca ?? ""}</td>
+          <td>${row.mg ?? ""}</td>
+          <td>${row.sg ?? ""}</td>
+        `;
+        tableBody.appendChild(tr);
+      }
+    }
+
+    // Chart setup
+    function createChart(ctx, label, color) {
+      return new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label,
+              data: [],
+              borderColor: color,
+              backgroundColor: color + "33",
+              tension: 0.2,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { autoSkip: true, maxTicksLimit: 6 }
+            }
+          }
+        }
+      });
+    }
+
+    function initCharts() {
+      charts.alk = createChart(
+        document.getElementById("chart-alk").getContext("2d"),
+        "Alkalinity (dKH)",
+        "rgba(54, 162, 235, 1)"
+      );
+      charts.po4 = createChart(
+        document.getElementById("chart-po4").getContext("2d"),
+        "Phosphate (ppm)",
+        "rgba(255, 99, 132, 1)"
+      );
+      charts.no3 = createChart(
+        document.getElementById("chart-no3").getContext("2d"),
+        "Nitrate (ppm)",
+        "rgba(255, 159, 64, 1)"
+      );
+      charts.ca = createChart(
+        document.getElementById("chart-ca").getContext("2d"),
+        "Calcium (ppm)",
+        "rgba(75, 192, 192, 1)"
+      );
+      charts.mg = createChart(
+        document.getElementById("chart-mg").getContext("2d"),
+        "Magnesium (ppm)",
+        "rgba(153, 102, 255, 1)"
+      );
+      charts.sg = createChart(
+        document.getElementById("chart-sg").getContext("2d"),
+        "Specific Gravity",
+        "rgba(201, 203, 207, 1)"
+      );
+    }
+
+    function updateCharts() {
+      sortData();
+      const labels = data.map(d => d.date);
+
+      function setSeries(chart, key) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data.map(d => d[key] ?? null);
+        chart.update();
+      }
+
+      setSeries(charts.alk, "alk");
+      setSeries(charts.po4, "po4");
+      setSeries(charts.no3, "no3");
+      setSeries(charts.ca, "ca");
+      setSeries(charts.mg, "mg");
+      setSeries(charts.sg, "sg");
+    }
+
+    // Form handling
+    const form = document.getElementById("entry-form");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const date = document.getElementById("date").value;
+      if (!date) {
+        alert("Please enter a date.");
+        return;
+      }
+
+      const getNumber = (id) => {
+        const v = document.getElementById(id).value;
+        return v === "" ? null : Number(v);
+      };
+
+      const entry = {
+        date,
+        alk: getNumber("alk"),
+        po4: getNumber("po4"),
+        no3: getNumber("no3"),
+        ca: getNumber("ca"),
+        mg: getNumber("mg"),
+        sg: getNumber("sg")
+      };
+
+      try {
+        await saveEntry(entry);
+        await loadData();
+        form.reset();
+      } catch (e) {
+        alert('Save failed: ' + e.message);
+      }
+    });
+
+    document.getElementById("clear-data").addEventListener("click", clearAll);
+
+    // Init: load data on page load
+    window.addEventListener('load', () => {
+      initCharts();
+      loadData();
+    });
+  </script>
+</body>
+</html>
