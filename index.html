@@ -8,10 +8,17 @@
     body {
       font-family: sans-serif;
       margin: 20px;
-      max-width: 1000px;
+      max-width: 1200px;
     }
     h1, h2 {
       margin-bottom: 0.3em;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #f9f9f9;
     }
     form {
       display: grid;
@@ -24,17 +31,49 @@
       display: flex;
       flex-direction: column;
     }
-    input[type="number"], input[type="date"] {
-      padding: 4px;
+    input[type="number"], input[type="date"], input[type="text"], select, textarea {
+      padding: 6px;
       font-size: 0.9em;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+      font-family: sans-serif;
     }
     button {
       padding: 8px 12px;
       cursor: pointer;
       font-size: 0.9em;
+      border: 1px solid #999;
+      border-radius: 3px;
+      background: #fff;
+    }
+    button:hover {
+      background: #f0f0f0;
+    }
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+      border: 1px solid #45a049;
+    }
+    .btn-primary:hover {
+      background: #45a049;
+    }
+    .btn-danger {
+      background: #f44336;
+      color: white;
+      border: 1px solid #da190b;
+    }
+    .btn-danger:hover {
+      background: #da190b;
     }
     .full-width {
       grid-column: 1 / -1;
+    }
+    .two-cols {
+      grid-column: span 2;
     }
     .charts {
       display: grid;
@@ -50,126 +89,343 @@
       border-collapse: collapse;
       margin-top: 20px;
       width: 100%;
-      font-size: 0.9em;
+      font-size: 0.85em;
     }
     th, td {
       border: 1px solid #ccc;
-      padding: 4px 6px;
-      text-align: center;
+      padding: 6px 8px;
+      text-align: left;
     }
     th {
       background: #eee;
+      font-weight: 600;
+    }
+    .tank-selector {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .tank-selector select {
+      flex: 1;
+      max-width: 300px;
+    }
+    .stats-box {
+      display: inline-block;
+      padding: 10px 15px;
+      background: #e3f2fd;
+      border-left: 4px solid #2196F3;
+      margin: 10px 0;
+      border-radius: 3px;
+    }
+    .stats-box strong {
+      font-size: 1.2em;
+      color: #1976D2;
+    }
+    .tank-list {
+      list-style: none;
+      padding: 0;
+    }
+    .tank-list li {
+      padding: 8px;
+      margin: 5px 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .delete-btn {
+      padding: 4px 8px;
+      font-size: 0.8em;
+    }
+    .notes-cell {
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.85em;
+      color: #666;
     }
   </style>
 </head>
 <body>
-  <h1>Reef Tank Parameter Tracker</h1>
-  <p>Track alkalinity, phosphate, nitrate, calcium, magnesium, and specific gravity over time.</p>
+  <h1>🪸 Reef Tank Parameter Tracker</h1>
+  <p>Track alkalinity, phosphate, nitrate, calcium, magnesium, specific gravity, water changes, and maintenance notes across multiple tanks.</p>
 
-  <h2>Add Measurement</h2>
-  <form id="entry-form">
-    <label>
-      Date
-      <input type="date" id="date" required />
-    </label>
-    <label>
-      Alkalinity (dKH)
-      <input type="number" id="alk" step="0.1" />
-    </label>
-    <label>
-      Phosphate (ppm)
-      <input type="number" id="po4" step="0.01" />
-    </label>
-    <label>
-      Nitrate (ppm)
-      <input type="number" id="no3" step="0.1" />
-    </label>
-    <label>
-      Calcium (ppm)
-      <input type="number" id="ca" step="1" />
-    </label>
-    <label>
-      Magnesium (ppm)
-      <input type="number" id="mg" step="1" />
-    </label>
-    <label>
-      Specific Gravity
-      <input type="number" id="sg" step="0.0001" />
-    </label>
-    <div class="full-width">
-      <button type="submit">Add / Update Entry</button>
-      <button type="button" id="clear-data" style="margin-left: 10px; background:#fdd;">
-        Clear All Data
-      </button>
-    </div>
-  </form>
-
-  <h2>Charts</h2>
-  <div class="charts">
-    <div>
-      <h3>Alkalinity</h3>
-      <canvas id="chart-alk"></canvas>
-    </div>
-    <div>
-      <h3>Phosphate</h3>
-      <canvas id="chart-po4"></canvas>
-    </div>
-    <div>
-      <h3>Nitrate</h3>
-      <canvas id="chart-no3"></canvas>
-    </div>
-    <div>
-      <h3>Calcium</h3>
-      <canvas id="chart-ca"></canvas>
-    </div>
-    <div>
-      <h3>Magnesium</h3>
-      <canvas id="chart-mg"></canvas>
-    </div>
-    <div>
-      <h3>Specific Gravity</h3>
-      <canvas id="chart-sg"></canvas>
-    </div>
+  <!-- Tank Management Section -->
+  <div class="section">
+    <h2>Tank Management</h2>
+    <form id="tank-form">
+      <label>
+        Tank Name
+        <input type="text" id="tank-name" required placeholder="e.g., Display Tank" />
+      </label>
+      <label>
+        Size (gallons)
+        <input type="number" id="tank-size" step="1" required placeholder="e.g., 75" />
+      </label>
+      <div class="two-cols">
+        <button type="submit" class="btn-primary">Add Tank</button>
+      </div>
+    </form>
+    
+    <h3>Your Tanks</h3>
+    <ul id="tank-list" class="tank-list"></ul>
   </div>
 
-  <h2>Raw Data</h2>
-  <table id="data-table">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Alk</th>
-        <th>PO4</th>
-        <th>NO3</th>
-        <th>Ca</th>
-        <th>Mg</th>
-        <th>SG</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <!-- Tank Selection -->
+  <div class="section">
+    <div class="tank-selector">
+      <label style="margin: 0;">
+        <strong>Select Tank:</strong>
+      </label>
+      <select id="tank-select">
+        <option value="">-- Select a tank --</option>
+      </select>
+    </div>
+    <div id="water-change-stats"></div>
+  </div>
+
+  <!-- Parameter Entry Section -->
+  <div class="section" id="entry-section" style="display: none;">
+    <h2>Add Measurement</h2>
+    <form id="entry-form">
+      <label>
+        Date
+        <input type="date" id="date" required />
+      </label>
+      <label>
+        Alkalinity (dKH)
+        <input type="number" id="alk" step="0.1" placeholder="e.g., 8.5" />
+      </label>
+      <label>
+        Phosphate (ppm)
+        <input type="number" id="po4" step="0.01" placeholder="e.g., 0.03" />
+      </label>
+      <label>
+        Nitrate (ppm)
+        <input type="number" id="no3" step="0.1" placeholder="e.g., 5.0" />
+      </label>
+      <label>
+        Calcium (ppm)
+        <input type="number" id="ca" step="1" placeholder="e.g., 420" />
+      </label>
+      <label>
+        Magnesium (ppm)
+        <input type="number" id="mg" step="1" placeholder="e.g., 1350" />
+      </label>
+      <label>
+        Specific Gravity
+        <input type="number" id="sg" step="0.0001" placeholder="e.g., 1.025" />
+      </label>
+      <label>
+        Water Change (gal)
+        <input type="number" id="water-change" step="0.1" placeholder="e.g., 10" />
+      </label>
+      <label class="full-width">
+        Notes / Maintenance
+        <textarea id="notes" placeholder="e.g., Cleaned skimmer, added coral food, noticed RTN on frag..."></textarea>
+      </label>
+      <div class="full-width">
+        <button type="submit" class="btn-primary">Add / Update Entry</button>
+        <button type="button" id="clear-data" class="btn-danger" style="margin-left: 10px;">
+          Clear All Data for This Tank
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Charts Section -->
+  <div id="charts-section" style="display: none;">
+    <h2>Charts</h2>
+    <div class="charts">
+      <div>
+        <h3>Alkalinity</h3>
+        <canvas id="chart-alk"></canvas>
+      </div>
+      <div>
+        <h3>Phosphate</h3>
+        <canvas id="chart-po4"></canvas>
+      </div>
+      <div>
+        <h3>Nitrate</h3>
+        <canvas id="chart-no3"></canvas>
+      </div>
+      <div>
+        <h3>Calcium</h3>
+        <canvas id="chart-ca"></canvas>
+      </div>
+      <div>
+        <h3>Magnesium</h3>
+        <canvas id="chart-mg"></canvas>
+      </div>
+      <div>
+        <h3>Specific Gravity</h3>
+        <canvas id="chart-sg"></canvas>
+      </div>
+    </div>
+
+    <h2>Data Log</h2>
+    <table id="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Alk</th>
+          <th>PO4</th>
+          <th>NO3</th>
+          <th>Ca</th>
+          <th>Mg</th>
+          <th>SG</th>
+          <th>WC (gal)</th>
+          <th>Notes</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
+    let tanks = [];
     let data = [];
     let charts = {};
+    let selectedTankId = null;
 
     // API base URL
     const API_BASE = '/api';
 
-    // Load data from API
-    async function loadData() {
+    // ==================== TANK MANAGEMENT ====================
+
+    async function loadTanks() {
       try {
-        const res = await fetch(`${API_BASE}/parameters`);
+        const res = await fetch(`${API_BASE}/tanks`);
+        if (!res.ok) throw new Error('Failed to load tanks');
+        tanks = await res.json();
+        renderTankList();
+        populateTankSelector();
+      } catch (e) {
+        console.error('Load tanks failed:', e);
+        alert('Failed to load tanks. Check if API is running.');
+      }
+    }
+
+    function renderTankList() {
+      const list = document.getElementById('tank-list');
+      list.innerHTML = '';
+      
+      if (tanks.length === 0) {
+        list.innerHTML = '<li style="color: #999;">No tanks yet. Add one above!</li>';
+        return;
+      }
+      
+      tanks.forEach(tank => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span><strong>${tank.name}</strong> - ${tank.size_gallons} gallons</span>
+          <button class="delete-btn btn-danger" onclick="deleteTank(${tank.id})">Delete</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function populateTankSelector() {
+      const select = document.getElementById('tank-select');
+      const currentValue = select.value;
+      
+      select.innerHTML = '<option value="">-- Select a tank --</option>';
+      
+      tanks.forEach(tank => {
+        const option = document.createElement('option');
+        option.value = tank.id;
+        option.textContent = `${tank.name} (${tank.size_gallons} gal)`;
+        select.appendChild(option);
+      });
+      
+      // Restore selection if it still exists
+      if (currentValue && tanks.find(t => t.id == currentValue)) {
+        select.value = currentValue;
+      } else if (tanks.length === 1) {
+        // Auto-select if only one tank
+        select.value = tanks[0].id;
+        onTankSelected();
+      }
+    }
+
+    async function deleteTank(tankId) {
+      if (!confirm('Delete this tank and ALL its data?')) return;
+      
+      try {
+        const res = await fetch(`${API_BASE}/tanks/${tankId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!res.ok) throw new Error('Delete failed');
+        
+        await loadTanks();
+        
+        if (selectedTankId == tankId) {
+          selectedTankId = null;
+          document.getElementById('tank-select').value = '';
+          document.getElementById('entry-section').style.display = 'none';
+          document.getElementById('charts-section').style.display = 'none';
+          document.getElementById('water-change-stats').innerHTML = '';
+        }
+      } catch (e) {
+        alert('Failed to delete tank: ' + e.message);
+      }
+    }
+
+    // Tank form submission
+    document.getElementById('tank-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('tank-name').value.trim();
+      const size = parseFloat(document.getElementById('tank-size').value);
+      
+      if (!name || !size || size <= 0) {
+        alert('Please enter a valid tank name and size.');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/tanks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, size_gallons: size })
+        });
+        
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to add tank');
+        }
+        
+        await loadTanks();
+        document.getElementById('tank-form').reset();
+      } catch (e) {
+        alert('Failed to add tank: ' + e.message);
+      }
+    });
+
+    // ==================== PARAMETERS ====================
+
+    async function loadParameters() {
+      if (!selectedTankId) return;
+      
+      try {
+        const res = await fetch(`${API_BASE}/parameters?tank_id=${selectedTankId}`);
         if (!res.ok) throw new Error('API error');
         data = await res.json();
         renderTable();
         updateCharts();
+        loadWaterChangeStats();
       } catch (e) {
         console.error('Load failed:', e);
-        alert('Failed to load data. Check if API is running.');
+        alert('Failed to load data.');
       }
     }
 
-    // Save entry via API
     async function saveEntry(entry) {
       const res = await fetch(`${API_BASE}/parameters`, {
         method: 'POST',
@@ -180,11 +436,45 @@
       return res.json();
     }
 
-    // Clear all data
+    async function deleteEntry(entryId) {
+      if (!confirm('Delete this entry?')) return;
+      
+      const res = await fetch(`${API_BASE}/parameters/${entryId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) loadParameters();
+    }
+
     async function clearAll() {
-      if (!confirm('Delete ALL data?')) return;
-      const res = await fetch(`${API_BASE}/parameters/clear`, { method: 'DELETE' });
-      if (res.ok) loadData();
+      if (!confirm('Delete ALL data for this tank?')) return;
+      const res = await fetch(`${API_BASE}/parameters/clear?tank_id=${selectedTankId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) loadParameters();
+    }
+
+    async function loadWaterChangeStats() {
+      if (!selectedTankId) return;
+      
+      try {
+        const res = await fetch(`${API_BASE}/analytics/water-change-monthly?tank_id=${selectedTankId}`);
+        if (!res.ok) return;
+        
+        const stats = await res.json();
+        const container = document.getElementById('water-change-stats');
+        
+        const gallons = stats.last_30_days.gallons || 0;
+        const percentage = stats.last_30_days.percentage || 0;
+        
+        container.innerHTML = `
+          <div class="stats-box">
+            <strong>${percentage}%</strong> water changed in last 30 days
+            (${gallons.toFixed(1)} gallons of ${stats.tank_size} total)
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load water change stats:', e);
+      }
     }
 
     // Sort data by date ascending
@@ -207,6 +497,9 @@
           <td>${row.ca ?? ""}</td>
           <td>${row.mg ?? ""}</td>
           <td>${row.sg ?? ""}</td>
+          <td>${row.water_change_gallons ?? ""}</td>
+          <td class="notes-cell" title="${row.notes || ''}">${row.notes || ""}</td>
+          <td><button class="delete-btn btn-danger" onclick="deleteEntry(${row.id})">Delete</button></td>
         `;
         tableBody.appendChild(tr);
       }
@@ -294,10 +587,34 @@
       setSeries(charts.sg, "sg");
     }
 
+    // Tank selection handler
+    function onTankSelected() {
+      const select = document.getElementById('tank-select');
+      selectedTankId = select.value ? parseInt(select.value) : null;
+      
+      if (selectedTankId) {
+        document.getElementById('entry-section').style.display = 'block';
+        document.getElementById('charts-section').style.display = 'block';
+        loadParameters();
+      } else {
+        document.getElementById('entry-section').style.display = 'none';
+        document.getElementById('charts-section').style.display = 'none';
+        document.getElementById('water-change-stats').innerHTML = '';
+      }
+    }
+
+    document.getElementById('tank-select').addEventListener('change', onTankSelected);
+
     // Form handling
     const form = document.getElementById("entry-form");
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      
+      if (!selectedTankId) {
+        alert("Please select a tank first.");
+        return;
+      }
+      
       const date = document.getElementById("date").value;
       if (!date) {
         alert("Please enter a date.");
@@ -310,18 +627,21 @@
       };
 
       const entry = {
+        tank_id: selectedTankId,
         date,
         alk: getNumber("alk"),
         po4: getNumber("po4"),
         no3: getNumber("no3"),
         ca: getNumber("ca"),
         mg: getNumber("mg"),
-        sg: getNumber("sg")
+        sg: getNumber("sg"),
+        water_change_gallons: getNumber("water-change"),
+        notes: document.getElementById("notes").value.trim() || null
       };
 
       try {
         await saveEntry(entry);
-        await loadData();
+        await loadParameters();
         form.reset();
       } catch (e) {
         alert('Save failed: ' + e.message);
@@ -330,10 +650,10 @@
 
     document.getElementById("clear-data").addEventListener("click", clearAll);
 
-    // Init: load data on page load
+    // Init: load tanks and charts on page load
     window.addEventListener('load', () => {
       initCharts();
-      loadData();
+      loadTanks();
     });
   </script>
 </body>
